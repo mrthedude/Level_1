@@ -35,7 +35,7 @@ contract basicLendingBorrowing {
     error onlyTheOwnerCanRug();
     error cantWithdrawMoreThanDeposited();
 
-    address internal immutable i_owner;
+    address public immutable i_owner;
     uint256 constant MAXIMUMCOLLATERALRATIO = 1.5e18; // LTV Ratio of 150%
     mapping(address user => uint256 amount) internal depositBalance;
     mapping(address user => uint256 amount) internal borrowedBalance;
@@ -187,5 +187,9 @@ contract basicLendingBorrowing {
 
     function getContractBalance() public view returns (uint256) {
         return address(this).balance;
+    }
+
+    function getOwnerAddress() public view returns (address) {
+        return i_owner;
     }
 }

@@ -159,5 +159,17 @@ contract testingBorrowing is Test, basicLendingBorrowing {
 
     ////////// Testing rug //////////
 
-    function testRug() public {}
+    function test_RevertWhen_MsgSenderIsNotOwner() public {
+        vm.prank(USER);
+        lendingContract.deposit{value: 1e18}();
+        vm.expectRevert(basicLendingBorrowing.onlyTheOwnerCanRug.selector);
+        lendingContract.rug();
+    }
+
+    function test_RevertWhen_noMoneyInContractToRug() public {
+        address ownerAddress = lendingContract.getOwnerAddress();
+        vm.prank(ownerAddress);
+        vm.expectRevert(basicLendingBorrowing.withdrawError.selector);
+        lendingContract.rug();
+    }
 }
