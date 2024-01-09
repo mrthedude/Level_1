@@ -149,6 +149,14 @@ contract testingBorrowing is Test, basicLendingBorrowing {
         vm.stopPrank();
     }
 
+    function testBorrowedBalanceSetToZeroAfterRepayment() public {
+        vm.startPrank(USER);
+        lendingContract.deposit{value: 1e18}();
+        lendingContract.borrow(5e17);
+        lendingContract.repay(5e17);
+        assertEq(lendingContract.getBorrowedBalance(USER), 0);
+    }
+
     ////////// Testing rug //////////
 
     function testRug() public {}
