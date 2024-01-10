@@ -6,8 +6,9 @@ import {basicLendingBorrowing} from "../src/LendingBorrowing.sol";
 
 contract deployer is Script {
     function run() external returns (basicLendingBorrowing) {
+        vm.startBroadcast();
         basicLendingBorrowing lendingContract = new basicLendingBorrowing();
-
+        vm.stopBroadcast();
         return lendingContract;
     }
 }
