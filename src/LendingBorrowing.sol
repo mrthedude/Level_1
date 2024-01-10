@@ -192,4 +192,8 @@ contract basicLendingBorrowing {
     function getOwnerAddress() public view returns (address) {
         return i_owner;
     }
+
+    function getContractAddress() public view returns (address) {
+        return address(this);
+    }
 }

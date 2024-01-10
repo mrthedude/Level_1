@@ -138,14 +138,17 @@ contract testingBorrowing is Test, basicLendingBorrowing {
     }
 
     function testRepaymentAmountIsAddedToContract() public {
+        address contractAddress = lendingContract.getContractAddress();
+        console.log("Contract Address with getter: ", contractAddress);
+        console.log("Contract balance with getter: ", contractAddress.balance);
         vm.startPrank(USER);
         lendingContract.deposit{value: 4e18}();
-        console.log("Initial Contract Balance: ", address(lendingContract).balance / 1e18);
+        console.log("Initial Contract Balance: ", contractAddress.balance / 1e18);
         lendingContract.borrow(2e18);
-        console.log("Contract balance AFTER BORROWING: ", address(lendingContract).balance / 1e18);
+        console.log("Contract balance AFTER BORROWING: ", contractAddress.balance / 1e18);
         lendingContract.repay(2e18);
-        console.log("Contract balance AFTER REPAYMENT: ", address(lendingContract).balance / 1e18);
-        assertEq(lendingContract.getContractBalance(), 4e18);
+        console.log("Contract balance AFTER REPAYMENT: ", contractAddress.balance / 1e18);
+        assertEq(contractAddress.balance, 4e18);
         vm.stopPrank();
     }
 
