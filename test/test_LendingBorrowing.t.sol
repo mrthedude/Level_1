@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {basicLendingBorrowing} from "../src/LendingBorrowing.sol";
-import {deployer} from "../script/LendingBorrowing.s.sol";
+import {deployer} from "../script/deployer.s.sol";
 import {StdCheats} from "forge-std/StdCheats.sol";
 
 contract testingBorrowing is Test, basicLendingBorrowing {
