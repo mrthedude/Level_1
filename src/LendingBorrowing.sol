@@ -35,7 +35,7 @@ contract basicLendingBorrowing {
     error onlyTheOwnerCanRug();
     error cantWithdrawMoreThanDeposited();
 
-    address public immutable i_owner;
+    address internal immutable i_owner;
     uint256 constant MAXIMUMCOLLATERALRATIO = 1.5e18; // LTV Ratio of 150%
     mapping(address user => uint256 amount) internal depositBalance;
     mapping(address user => uint256 amount) internal borrowedBalance;
@@ -72,25 +72,25 @@ contract basicLendingBorrowing {
          * 4. Emits event for user deposits
          * DONE
          */
-        uint256 amount = msg.value;
-        if (amount == 0) {
+        if (msg.value == 0) {
             revert noFundsDeposited();
         }
-        depositBalance[msg.sender] += amount;
+
+        depositBalance[msg.sender] += msg.value;
         emit UserDepositedFunds(msg.sender, depositBalance[msg.sender]);
     }
 
-    function withdraw(uint256 amount) external {
+    function withdraw(uint256 amountInWei) external {
         /**
          * Functionalities:
-         * 1. checks to see if the withdraw amount > depositBalance
-         * 2. checks to see if user has an open lending position
-         * 3. Sends the amount to the user's address
-         * 4. subtracts the user's depositBalance by the amount
+         * 1. Checks to see if the withdraw amountInWei > depositBalance[msg.sender]
+         * 2. Checks to see if user has an open lending position -> `borrowedBalance[msg.sender]`
+         * 3. Sends the amountInWei to the user's address
+         * 4. subtracts the user's depositBalance by the amountInWei
          * 5. Emits an event for a user withdrawing their deposit
          * DONE
          */
-        if (amount > depositBalance[msg.sender]) {
+        if (amountInWei > depositBalance[msg.sender]) {
             revert cantWithdrawMoreThanDeposited();
         }
 
@@ -98,22 +98,22 @@ contract basicLendingBorrowing {
             revert cannotWithdrawWhileFundsAreBorrowed();
         }
 
-        (bool success,) = payable(msg.sender).call{value: amount}("");
+        (bool success,) = payable(msg.sender).call{value: amountInWei}("");
         if (!success) {
             revert withdrawError();
         }
-        depositBalance[msg.sender] -= amount;
-        emit UserWithdrewDeposit(msg.sender, amount, depositBalance[msg.sender]);
+        depositBalance[msg.sender] -= amountInWei;
+        emit UserWithdrewDeposit(msg.sender, amountInWei, depositBalance[msg.sender]);
     }
 
-    function borrow(uint256 amount) external {
+    function borrow(uint256 amountInWei) external {
         /**
          * Functionalities:
          * 1. Checks to see if user has deposited funds
-         * 2. Checks to see if borrowing the amount specified will cause the user's LTV ratio to exceed the MAXIMUMCOLLATERALRATIO
-         * 3. Checks to see if the contract has that amount of ETH to lend
-         * 4. Increases the user's borrowedBalance
-         * 5. Sends ETH amount to user's address
+         * 2. Checks to see if borrowing the amountInWei will cause the user's LTV ratio to exceed the MAXIMUMCOLLATERALRATIO
+         * 3. Checks to see if the contract has that amountInWei of ETH to lend
+         * 4. Increases the user's borrowedBalance by the amountInWei
+         * 5. Sends ETH amountInWei to user's address
          * 6. Emits borrow event
          * DONE
          */
@@ -121,41 +121,37 @@ contract basicLendingBorrowing {
             revert noFundsDeposited();
         }
 
-        if (((amount + borrowedBalance[msg.sender]) * 1e18) / depositBalance[msg.sender] > MAXIMUMCOLLATERALRATIO) {
+        if (((amountInWei + borrowedBalance[msg.sender]) * 1e18) / depositBalance[msg.sender] > MAXIMUMCOLLATERALRATIO)
+        {
             revert borrowingAmountExceedsCollateralLTVRequirements();
         }
 
-        if (address(this).balance < amount) {
+        if (address(this).balance < amountInWei) {
             revert notEnoughEthInContractToLend();
         }
-        (bool success,) = payable(msg.sender).call{value: amount}("");
+        (bool success,) = payable(msg.sender).call{value: amountInWei}("");
         if (!success) {
             revert borrowingFailed();
         }
-        borrowedBalance[msg.sender] += amount;
-        emit UserBorrowedFunds(msg.sender, amount, borrowedBalance[msg.sender]);
+        borrowedBalance[msg.sender] += amountInWei;
+        emit UserBorrowedFunds(msg.sender, amountInWei, borrowedBalance[msg.sender]);
     }
 
-    function repay(uint256 amount) external payable {
+    function repay() external payable {
         /**
          * Functionalities:
-         * 1. checks if repayment amount == borrowedBalance
-         * 3. deposits specified amount into contract
-         * 2. Sets borrowedBalance[msg.sender] = 0
+         * 1. Reverts if repayment amountInWei != borrowedBalance
+         * 2. Receives msg.value
+         * 3. Sets borrowedBalance[msg.sender] = 0
          * 4. Emits event for repayment
-         *
+         * DONE
          */
-        if (amount != borrowedBalance[msg.sender]) {
+        if (msg.value != borrowedBalance[msg.sender]) {
             revert exactBorrowedBalanceMustBeRepaid();
         }
 
-        (bool success,) = address(this).call{value: amount}("");
-        if (!success) {
-            revert repaymentFailed();
-        } else {
-            borrowedBalance[msg.sender] = 0;
-            emit UserRepaidBorrowedAmount(msg.sender, amount, address(this).balance);
-        }
+        borrowedBalance[msg.sender] = 0;
+        emit UserRepaidBorrowedAmount(msg.sender, msg.value, address(this).balance);
     }
 
     function rug() external onlyOwner {
@@ -163,18 +159,15 @@ contract basicLendingBorrowing {
          * Functionalities:
          * 1. Checks if msg.sender == owner
          * 2. Checks if contract address has a balance == 0
-         * 3. Sends all funds inside of contract to the owner's address
-         * 4. Emits safu() event
-         *
+         * 3. Emits safu() event
+         * 4. Destroys the contract and sends all funds to i_owner
+         * DONE
          */
         if (address(this).balance == 0) {
             revert withdrawError();
         }
-        (bool pulled,) = payable(msg.sender).call{value: address(this).balance}("");
-        if (!pulled) {
-            revert withdrawError();
-        }
         emit safu();
+        selfdestruct(payable(i_owner));
     }
 
     function getDepositBalance(address _user) public view returns (uint256) {
@@ -183,17 +176,5 @@ contract basicLendingBorrowing {
 
     function getBorrowedBalance(address _user) public view returns (uint256) {
         return borrowedBalance[_user];
-    }
-
-    function getContractBalance() public view returns (uint256) {
-        return address(this).balance;
-    }
-
-    function getOwnerAddress() public view returns (address) {
-        return i_owner;
-    }
-
-    function getContractAddress() public view returns (address) {
-        return address(this);
     }
 }

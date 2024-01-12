@@ -1,24 +1,3 @@
-// Layout of Contract:
-// version
-// imports
-// interfaces, libraries, contracts
-// errors
-// Type declarations
-// State variables
-// Events
-// Modifiers
-// Functions
-
-// Layout of Functions:
-// constructor
-// receive function (if exists)
-// fallback function (if exists)
-// external
-// public
-// internal
-// private
-// view & pure functions
-
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.19;
 
@@ -64,27 +43,29 @@ contract testingBorrowing is Test, basicLendingBorrowing {
     ////////// Testing withdraw //////////
 
     function test_RevertWhen_withdrawIsGreaterThanDeposit() public {
-        vm.prank(USER);
+        vm.startPrank(USER);
         lendingContract.deposit{value: 1 ether}();
         vm.expectRevert(basicLendingBorrowing.cantWithdrawMoreThanDeposited.selector);
-        lendingContract.withdraw(2e18);
+        lendingContract.withdraw(1.1 ether);
+        vm.stopPrank();
+        console.log("Contract balance: ", address(lendingContract).balance);
     }
 
     function test_RevertWhen_withdrawCalledWithFundsBorrowed() public {
         vm.startPrank(USER);
         lendingContract.deposit{value: 1 ether}();
-        lendingContract.borrow(1e17);
+        lendingContract.borrow(0.1 ether);
         vm.expectRevert(basicLendingBorrowing.cannotWithdrawWhileFundsAreBorrowed.selector);
-        lendingContract.withdraw(1e17);
+        lendingContract.withdraw(0.1 ether);
         vm.stopPrank();
     }
 
     function testUserBalanceIncreaseByWithdrawAmount() public {
         vm.startPrank(USER);
         lendingContract.deposit{value: 2 ether}();
-        lendingContract.withdraw(1e18);
+        lendingContract.withdraw(1 ether);
         vm.stopPrank();
-        assertEq(address(USER).balance, 9e18);
+        assertEq(USER.balance, 9 ether);
     }
 
     ////////// Testing borrow //////////
@@ -92,14 +73,15 @@ contract testingBorrowing is Test, basicLendingBorrowing {
     function test_RevertWhen_noFundsDeposited_borrow() public {
         vm.prank(USER);
         vm.expectRevert(basicLendingBorrowing.noFundsDeposited.selector);
-        lendingContract.borrow(1);
+        lendingContract.borrow(1 ether);
     }
 
     function test_RevertWhen_borrowingExceedsMaximumLTV() public {
+        lendingContract.deposit{value: 1 ether}();
         vm.startPrank(USER);
         lendingContract.deposit{value: 1 ether}();
         vm.expectRevert(basicLendingBorrowing.borrowingAmountExceedsCollateralLTVRequirements.selector);
-        lendingContract.borrow(1.51e18);
+        lendingContract.borrow(1.51 ether);
         vm.stopPrank();
     }
 
@@ -107,14 +89,15 @@ contract testingBorrowing is Test, basicLendingBorrowing {
         vm.startPrank(USER);
         lendingContract.deposit{value: 1 ether}();
         vm.expectRevert(basicLendingBorrowing.notEnoughEthInContractToLend.selector);
-        lendingContract.borrow(1.1e18);
+        lendingContract.borrow(1.1 ether);
         vm.stopPrank();
+        console.log("Contract Balance: ", address(lendingContract).balance);
     }
 
     function testUserBorrowBalanceIncreases() public {
         vm.startPrank(USER);
         lendingContract.deposit{value: 2 ether}();
-        lendingContract.borrow(1e18);
+        lendingContract.borrow(1 ether);
         assertEq(lendingContract.getBorrowedBalance(USER), 1 ether);
         vm.stopPrank();
     }
@@ -122,7 +105,7 @@ contract testingBorrowing is Test, basicLendingBorrowing {
     function testIfUserBalanceIncreasesAfterBorrow() public {
         vm.startPrank(USER);
         lendingContract.deposit{value: 2 ether}();
-        lendingContract.borrow(1e18);
+        lendingContract.borrow(1 ether);
         assertEq(address(USER).balance, 9 ether);
     }
 
@@ -130,33 +113,29 @@ contract testingBorrowing is Test, basicLendingBorrowing {
 
     function test_RevertWhen_repayAmountDifferentThanBorrow() public {
         vm.startPrank(USER);
-        lendingContract.deposit{value: 4e18}();
-        lendingContract.borrow(2e18);
+        lendingContract.deposit{value: 4 ether}();
+        lendingContract.borrow(2 ether);
         vm.expectRevert(basicLendingBorrowing.exactBorrowedBalanceMustBeRepaid.selector);
-        lendingContract.repay(1e18);
+        lendingContract.repay{value: 1 ether}();
         vm.stopPrank();
+        console.log("Contract Balance: ", address(lendingContract).balance);
     }
 
     function testRepaymentAmountIsAddedToContract() public {
-        address contractAddress = lendingContract.getContractAddress();
-        console.log("Contract Address with getter: ", contractAddress);
-        console.log("Contract balance with getter: ", contractAddress.balance);
         vm.startPrank(USER);
-        lendingContract.deposit{value: 4e18}();
-        console.log("Initial Contract Balance: ", contractAddress.balance / 1e18);
-        lendingContract.borrow(2e18);
-        console.log("Contract balance AFTER BORROWING: ", contractAddress.balance / 1e18);
-        lendingContract.repay(2e18);
-        console.log("Contract balance AFTER REPAYMENT: ", contractAddress.balance / 1e18);
-        assertEq(contractAddress.balance, 4e18);
+        lendingContract.deposit{value: 4 ether}();
+        lendingContract.borrow(2 ether);
+        lendingContract.repay{value: 2 ether}();
         vm.stopPrank();
+        assertEq(address(lendingContract).balance, 4 ether);
     }
 
     function testBorrowedBalanceSetToZeroAfterRepayment() public {
         vm.startPrank(USER);
-        lendingContract.deposit{value: 1e18}();
-        lendingContract.borrow(5e17);
-        lendingContract.repay(5e17);
+        lendingContract.deposit{value: 1 ether}();
+        lendingContract.borrow(0.5 ether);
+        lendingContract.repay{value: 0.5 ether}();
+        vm.stopPrank();
         assertEq(lendingContract.getBorrowedBalance(USER), 0);
     }
 
@@ -164,15 +143,24 @@ contract testingBorrowing is Test, basicLendingBorrowing {
 
     function test_RevertWhen_MsgSenderIsNotOwner() public {
         vm.prank(USER);
-        lendingContract.deposit{value: 1e18}();
+        lendingContract.deposit{value: 1 ether}();
         vm.expectRevert(basicLendingBorrowing.onlyTheOwnerCanRug.selector);
         lendingContract.rug();
     }
 
     function test_RevertWhen_noMoneyInContractToRug() public {
-        address ownerAddress = lendingContract.getOwnerAddress();
-        vm.prank(ownerAddress);
+        vm.prank(i_owner);
         vm.expectRevert(basicLendingBorrowing.withdrawError.selector);
         lendingContract.rug();
+    }
+
+    function testRugFundsTransferToOWner() public {
+        vm.startPrank(i_owner);
+        lendingContract.deposit{value: 2 ether}();
+        uint256 originalBalance = i_owner.balance;
+        uint256 contractValue = address(lendingContract).balance;
+        lendingContract.rug();
+        assertEq(i_owner.balance, originalBalance + contractValue);
+        vm.stopPrank();
     }
 }
