@@ -43,7 +43,7 @@ contract basicLendingBorrowing {
     event UserDepositedFunds(address indexed user, uint256 indexed depositAmount);
     event UserWithdrewDeposit(address indexed user, uint256 withdrawAmount, uint256 indexed remainingDepositBalance);
     event UserBorrowedFunds(address indexed user, uint256 indexed borrowAmount, uint256 indexed totalBorrowAmount);
-    event UserRepaidBorrowedAmount(address indexed ser, uint256 repaymentAmount, uint256 indexed totalContractBalance);
+    event UserRepaidBorrowedAmount(address indexed user, uint256 repaymentAmount, uint256 indexed totalContractBalance);
     event safu();
 
     modifier onlyOwner() {
